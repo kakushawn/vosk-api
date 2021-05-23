@@ -26,11 +26,9 @@ extern "C" {
  *  threads. */
 typedef struct VoskModel VoskModel;
 
-
 /** Speaker model is the same as model but contains the data
  *  for speaker identification. */
 typedef struct VoskSpkModel VoskSpkModel;
-
 
 /** Recognizer object is the main object which processes data.
  *  Each recognizer usually runs in own thread and takes audio as input.
@@ -39,13 +37,11 @@ typedef struct VoskSpkModel VoskSpkModel;
  *  speaker information and so on */
 typedef struct VoskRecognizer VoskRecognizer;
 
-
 /** Loads model data from the file and returns the model object
  *
  * @param model_path: the path of the model on the filesystem
  @ @returns model object */
 VoskModel *vosk_model_new(const char *model_path);
-
 
 /** Releases the model memory
  *
@@ -54,7 +50,6 @@ VoskModel *vosk_model_new(const char *model_path);
  *  last recognizer is released, model will be released too. */
 void vosk_model_free(VoskModel *model);
 
-
 /** Check if a word can be recognized by the model
  * @param word: the word
  * @returns the word symbol if @param word exists inside the model
@@ -62,13 +57,11 @@ void vosk_model_free(VoskModel *model);
  * Reminding that word symbol 0 is for <epsilon> */
 int vosk_model_find_word(VoskModel *model, const char *word);
 
-
 /** Loads speaker model data from the file and returns the model object
  *
  * @param model_path: the path of the model on the filesystem
  * @returns model object */
 VoskSpkModel *vosk_spk_model_new(const char *model_path);
-
 
 /** Releases the model memory
  *
@@ -79,11 +72,10 @@ void vosk_spk_model_free(VoskSpkModel *model);
 
 /** Creates the recognizer object
  *
- *  The recognizers process the speech and return text using shared model data 
+ *  The recognizers process the speech and return text using shared model data
  *  @param sample_rate The sample rate of the audio you going to feed into the recognizer
  *  @returns recognizer object */
 VoskRecognizer *vosk_recognizer_new(VoskModel *model, float sample_rate);
-
 
 /** Creates the recognizer object with speaker recognition
  *
@@ -94,7 +86,6 @@ VoskRecognizer *vosk_recognizer_new(VoskModel *model, float sample_rate);
  *  @param sample_rate The sample rate of the audio you going to feed into the recognizer
  *  @returns recognizer object */
 VoskRecognizer *vosk_recognizer_new_spk(VoskModel *model, VoskSpkModel *spk_model, float sample_rate);
-
 
 /** Creates the recognizer object with the phrase list
  *
@@ -137,16 +128,18 @@ void vosk_recognizer_set_max_alternatives(VoskRecognizer *recognizer, int max_al
  *  @returns true if silence is occured and you can retrieve a new utterance with result method */
 int vosk_recognizer_accept_waveform(VoskRecognizer *recognizer, const char *data, int length);
 
-
 /** Same as above but the version with the short data for language bindings where you have
  *  audio as array of shorts */
 int vosk_recognizer_accept_waveform_s(VoskRecognizer *recognizer, const short *data, int length);
-
 
 /** Same as above but the version with the float data for language bindings where you have
  *  audio as array of floats */
 int vosk_recognizer_accept_waveform_f(VoskRecognizer *recognizer, const float *data, int length);
 
+void vosk_recognizer_set_endpoint_must_contain_silence(VoskRecognizer *recognizer, int rule_id, bool must_contain_nonsilence);
+void vosk_recognizer_set_endpoint_min_trainling_silence(VoskRecognizer *recognizer, int rule_id, float min_trailing_silence);
+void vosk_recognizer_set_endpoint_max_relative_cost(VoskRecognizer *recognizer, int rule_id, float max_relative_cost);
+void vosk_recognizer_set_endpoint_min_utterance_length(VoskRecognizer *recognizer, int rule_id, float min_utterance_length);
 
 /** Returns speech recognition result
  *
@@ -190,7 +183,6 @@ int vosk_recognizer_accept_waveform_f(VoskRecognizer *recognizer, const float *d
  */
 const char *vosk_recognizer_result(VoskRecognizer *recognizer);
 
-
 /** Returns partial speech recognition
  *
  * @returns partial speech recognition text which is not yet finalized.
@@ -204,7 +196,6 @@ const char *vosk_recognizer_result(VoskRecognizer *recognizer);
  */
 const char *vosk_recognizer_partial_result(VoskRecognizer *recognizer);
 
-
 /** Returns speech recognition result. Same as result, but doesn't wait for silence
  *  You usually call it in the end of the stream to get final bits of audio. It
  *  flushes the feature pipeline, so all remaining audio chunks got processed.
@@ -212,7 +203,6 @@ const char *vosk_recognizer_partial_result(VoskRecognizer *recognizer);
  *  @returns speech result in JSON format.
  */
 const char *vosk_recognizer_final_result(VoskRecognizer *recognizer);
-
 
 /** Releases recognizer object
  *

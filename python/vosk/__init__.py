@@ -60,6 +60,18 @@ class KaldiRecognizer(object):
     def AcceptWaveform(self, data):
         return _c.vosk_recognizer_accept_waveform(self._handle, data, len(data))
 
+    def SetEndpointMustContainNonsilence(self, rule_id:int, must_contain_nonsilence:bool):
+        return _c.vosk_recognizer_set_endpoint_must_contain_silence(self._handle, rule_id, must_contain_nonsilence)
+
+    def SetEndpointMinTrailingSilence(self, rule_id:int, min_trailing_silence:float):
+        return _c.vosk_recognizer_set_endpoint_min_trainling_silence(self._handle, rule_id, min_trailing_silence)
+
+    def SetEndpointMaxRelativeCost(self, rule_id:int, max_relative_cost:float):
+        return _c.vosk_recognizer_set_endpoint_max_relative_cost(self._handle, rule_id, max_relative_cost)
+
+    def SetEndpointMinUtteranceLength(self, rule_id:int, min_utterance_length:float):
+        return _c.vosk_recognizer_set_endpoint_min_utterance_length(self._handle, rule_id, min_utterance_length)
+
     def Result(self):
         return _ffi.string(_c.vosk_recognizer_result(self._handle)).decode('utf-8')
 

@@ -13,19 +13,19 @@
 // limitations under the License.
 
 #include "kaldi_recognizer.h"
-#include "json.h"
+
 #include "fstext/fstext-utils.h"
-#include "lat/sausages.h"
+#include "json.h"
 #include "language_model.h"
+#include "lat/sausages.h"
 
 using namespace fst;
 using namespace kaldi::nnet3;
 
 KaldiRecognizer::KaldiRecognizer(Model *model, float sample_frequency) : model_(model), spk_model_(0), sample_frequency_(sample_frequency) {
-
     model_->Ref();
 
-    feature_pipeline_ = new kaldi::OnlineNnet2FeaturePipeline (model_->feature_info_);
+    feature_pipeline_ = new kaldi::OnlineNnet2FeaturePipeline(model_->feature_info_);
     silence_weighting_ = new kaldi::OnlineSilenceWeighting(*model_->trans_model_, model_->feature_info_.silence_weighting_config, 3);
 
     if (!model_->hclg_fst_) {
@@ -37,20 +37,19 @@ KaldiRecognizer::KaldiRecognizer(Model *model, float sample_frequency) : model_(
     }
 
     decoder_ = new kaldi::SingleUtteranceNnet3Decoder(model_->nnet3_decoding_config_,
-            *model_->trans_model_,
-            *model_->decodable_info_,
-            model_->hclg_fst_ ? *model_->hclg_fst_ : *decode_fst_,
-            feature_pipeline_);
+                                                      *model_->trans_model_,
+                                                      *model_->decodable_info_,
+                                                      model_->hclg_fst_ ? *model_->hclg_fst_ : *decode_fst_,
+                                                      feature_pipeline_);
 
     InitState();
     InitRescoring();
 }
 
-KaldiRecognizer::KaldiRecognizer(Model *model, float sample_frequency, char const *grammar) : model_(model), spk_model_(0), sample_frequency_(sample_frequency)
-{
+KaldiRecognizer::KaldiRecognizer(Model *model, float sample_frequency, char const *grammar) : model_(model), spk_model_(0), sample_frequency_(sample_frequency) {
     model_->Ref();
 
-    feature_pipeline_ = new kaldi::OnlineNnet2FeaturePipeline (model_->feature_info_);
+    feature_pipeline_ = new kaldi::OnlineNnet2FeaturePipeline(model_->feature_info_);
     silence_weighting_ = new kaldi::OnlineSilenceWeighting(*model_->trans_model_, model_->feature_info_.silence_weighting_config, 3);
 
     if (model_->hcl_fst_) {
@@ -98,21 +97,20 @@ KaldiRecognizer::KaldiRecognizer(Model *model, float sample_frequency, char cons
     }
 
     decoder_ = new kaldi::SingleUtteranceNnet3Decoder(model_->nnet3_decoding_config_,
-            *model_->trans_model_,
-            *model_->decodable_info_,
-            model_->hclg_fst_ ? *model_->hclg_fst_ : *decode_fst_,
-            feature_pipeline_);
+                                                      *model_->trans_model_,
+                                                      *model_->decodable_info_,
+                                                      model_->hclg_fst_ ? *model_->hclg_fst_ : *decode_fst_,
+                                                      feature_pipeline_);
 
     InitState();
     InitRescoring();
 }
 
 KaldiRecognizer::KaldiRecognizer(Model *model, SpkModel *spk_model, float sample_frequency) : model_(model), spk_model_(spk_model), sample_frequency_(sample_frequency) {
-
     model_->Ref();
     spk_model->Ref();
 
-    feature_pipeline_ = new kaldi::OnlineNnet2FeaturePipeline (model_->feature_info_);
+    feature_pipeline_ = new kaldi::OnlineNnet2FeaturePipeline(model_->feature_info_);
     silence_weighting_ = new kaldi::OnlineSilenceWeighting(*model_->trans_model_, model_->feature_info_.silence_weighting_config, 3);
 
     if (!model_->hclg_fst_) {
@@ -124,10 +122,10 @@ KaldiRecognizer::KaldiRecognizer(Model *model, SpkModel *spk_model, float sample
     }
 
     decoder_ = new kaldi::SingleUtteranceNnet3Decoder(model_->nnet3_decoding_config_,
-            *model_->trans_model_,
-            *model_->decodable_info_,
-            model_->hclg_fst_ ? *model_->hclg_fst_ : *decode_fst_,
-            feature_pipeline_);
+                                                      *model_->trans_model_,
+                                                      *model_->decodable_info_,
+                                                      model_->hclg_fst_ ? *model_->hclg_fst_ : *decode_fst_,
+                                                      feature_pipeline_);
 
     spk_feature_ = new OnlineMfcc(spk_model_->spkvector_mfcc_opts);
 
@@ -152,11 +150,10 @@ KaldiRecognizer::~KaldiRecognizer() {
 
     model_->Unref();
     if (spk_model_)
-         spk_model_->Unref();
+        spk_model_->Unref();
 }
 
-void KaldiRecognizer::InitState()
-{
+void KaldiRecognizer::InitState() {
     frame_offset_ = 0;
     samples_processed_ = 0;
     samples_round_start_ = 0;
@@ -164,8 +161,7 @@ void KaldiRecognizer::InitState()
     state_ = RECOGNIZER_INITIALIZED;
 }
 
-void KaldiRecognizer::InitRescoring()
-{
+void KaldiRecognizer::InitRescoring() {
     if (model_->rnnlm_lm_fst_) {
         float lm_scale = 0.5;
         int lm_order = 4;
@@ -175,22 +171,20 @@ void KaldiRecognizer::InitRescoring()
         lm_to_subtract_det_scale = new fst::ScaleDeterministicOnDemandFst(-lm_scale, lm_to_subtract_det_backoff);
         lm_to_add_orig = new kaldi::rnnlm::KaldiRnnlmDeterministicFst(lm_order, *info);
         lm_to_add = new fst::ScaleDeterministicOnDemandFst(lm_scale, lm_to_add_orig);
-
     } else if (model_->std_lm_fst_) {
         fst::CacheOptions cache_opts(true, 50000);
         fst::ArcMapFstOptions mapfst_opts(cache_opts);
         fst::StdToLatticeMapper<kaldi::BaseFloat> mapper;
-        lm_fst_ = new fst::ArcMapFst<fst::StdArc, kaldi::LatticeArc, fst::StdToLatticeMapper<kaldi::BaseFloat> >(*model_->std_lm_fst_, mapper, mapfst_opts);
+        lm_fst_ = new fst::ArcMapFst<fst::StdArc, kaldi::LatticeArc, fst::StdToLatticeMapper<kaldi::BaseFloat>>(*model_->std_lm_fst_, mapper, mapfst_opts);
     }
 }
 
-void KaldiRecognizer::CleanUp()
-{
+void KaldiRecognizer::CleanUp() {
     delete silence_weighting_;
     silence_weighting_ = new kaldi::OnlineSilenceWeighting(*model_->trans_model_, model_->feature_info_.silence_weighting_config, 3);
 
     if (decoder_)
-       frame_offset_ += decoder_->NumFramesDecoded();
+        frame_offset_ += decoder_->NumFramesDecoded();
 
     // Each 10 minutes we drop the pipeline to save frontend memory in continuous processing
     // here we drop few frames remaining in the feature pipeline but hope it will not
@@ -206,12 +200,12 @@ void KaldiRecognizer::CleanUp()
         delete decoder_;
         delete feature_pipeline_;
 
-        feature_pipeline_ = new kaldi::OnlineNnet2FeaturePipeline (model_->feature_info_);
+        feature_pipeline_ = new kaldi::OnlineNnet2FeaturePipeline(model_->feature_info_);
         decoder_ = new kaldi::SingleUtteranceNnet3Decoder(model_->nnet3_decoding_config_,
-            *model_->trans_model_,
-            *model_->decodable_info_,
-            model_->hclg_fst_ ? *model_->hclg_fst_ : *decode_fst_,
-            feature_pipeline_);
+                                                          *model_->trans_model_,
+                                                          *model_->decodable_info_,
+                                                          model_->hclg_fst_ ? *model_->hclg_fst_ : *decode_fst_,
+                                                          feature_pipeline_);
 
         if (spk_model_) {
             delete spk_feature_;
@@ -222,26 +216,23 @@ void KaldiRecognizer::CleanUp()
     }
 }
 
-void KaldiRecognizer::UpdateSilenceWeights()
-{
+void KaldiRecognizer::UpdateSilenceWeights() {
     if (silence_weighting_->Active() && feature_pipeline_->NumFramesReady() > 0 &&
         feature_pipeline_->IvectorFeature() != nullptr) {
-        vector<pair<int32, BaseFloat> > delta_weights;
+        vector<pair<int32, BaseFloat>> delta_weights;
         silence_weighting_->ComputeCurrentTraceback(decoder_->Decoder());
         silence_weighting_->GetDeltaWeights(feature_pipeline_->NumFramesReady(),
-                                          frame_offset_ * 3,
-                                          &delta_weights);
+                                            frame_offset_ * 3,
+                                            &delta_weights);
         feature_pipeline_->UpdateFrameWeights(delta_weights);
     }
 }
 
-void KaldiRecognizer::SetMaxAlternatives(int max_alternatives)
-{
+void KaldiRecognizer::SetMaxAlternatives(int max_alternatives) {
     max_alternatives_ = max_alternatives;
 }
 
-bool KaldiRecognizer::AcceptWaveform(const char *data, int len)
-{
+bool KaldiRecognizer::AcceptWaveform(const char *data, int len) {
     Vector<BaseFloat> wave;
     wave.Resize(len / 2, kUndefined);
     for (int i = 0; i < len / 2; i++)
@@ -249,8 +240,7 @@ bool KaldiRecognizer::AcceptWaveform(const char *data, int len)
     return AcceptWaveform(wave);
 }
 
-bool KaldiRecognizer::AcceptWaveform(const short *sdata, int len)
-{
+bool KaldiRecognizer::AcceptWaveform(const short *sdata, int len) {
     Vector<BaseFloat> wave;
     wave.Resize(len, kUndefined);
     for (int i = 0; i < len; i++)
@@ -258,8 +248,7 @@ bool KaldiRecognizer::AcceptWaveform(const short *sdata, int len)
     return AcceptWaveform(wave);
 }
 
-bool KaldiRecognizer::AcceptWaveform(const float *fdata, int len)
-{
+bool KaldiRecognizer::AcceptWaveform(const float *fdata, int len) {
     Vector<BaseFloat> wave;
     wave.Resize(len, kUndefined);
     for (int i = 0; i < len; i++)
@@ -267,8 +256,7 @@ bool KaldiRecognizer::AcceptWaveform(const float *fdata, int len)
     return AcceptWaveform(wave);
 }
 
-bool KaldiRecognizer::AcceptWaveform(Vector<BaseFloat> &wdata)
-{
+bool KaldiRecognizer::AcceptWaveform(Vector<BaseFloat> &wdata) {
     // Cleanup if we finalized previous utterance or the whole feature pipeline
     if (!(state_ == RECOGNIZER_RUNNING || state_ == RECOGNIZER_INITIALIZED)) {
         CleanUp();
@@ -276,7 +264,7 @@ bool KaldiRecognizer::AcceptWaveform(Vector<BaseFloat> &wdata)
     state_ = RECOGNIZER_RUNNING;
 
     int step = static_cast<int>(sample_frequency_ * 0.2);
-    for (int i = 0; i < wdata.Dim(); i+= step) {
+    for (int i = 0; i < wdata.Dim(); i += step) {
         SubVector<BaseFloat> r = wdata.Range(i, std::min(step, wdata.Dim() - i));
         feature_pipeline_->AcceptWaveform(sample_frequency_, r);
         UpdateSilenceWeights();
@@ -295,16 +283,55 @@ bool KaldiRecognizer::AcceptWaveform(Vector<BaseFloat> &wdata)
     return false;
 }
 
+OnlineEndpointRule *KaldiRecognizer::GetOnlineEndpointRule(int id) {
+    switch (id) {
+        case 1:
+            return &(model_->endpoint_config_.rule1);
+        case 2:
+            return &(model_->endpoint_config_.rule2);
+        case 3:
+            return &(model_->endpoint_config_.rule3);
+        case 4:
+            return &(model_->endpoint_config_.rule4);
+        case 5:
+            return &(model_->endpoint_config_.rule5);
+    }
+    return NULL;
+}
+
+void KaldiRecognizer::SetEndpointMustContainNonsilence(int rule_id, bool must_contain_nonsilence) {
+    OnlineEndpointRule *rule = GetOnlineEndpointRule(rule_id);
+    rule->must_contain_nonsilence = must_contain_nonsilence;
+    return;
+}
+
+void KaldiRecognizer::SetEndpointMinTrailingSilence(int rule_id, BaseFloat min_trailing_silence) {
+    OnlineEndpointRule *rule = GetOnlineEndpointRule(rule_id);
+    rule->min_trailing_silence = min_trailing_silence;
+    return;
+}
+
+void KaldiRecognizer::SetEndpointMaxRelativeCost(int rule_id, BaseFloat max_relative_cost) {
+    OnlineEndpointRule *rule = GetOnlineEndpointRule(rule_id);
+    rule->max_relative_cost = max_relative_cost;
+    return;
+}
+
+void KaldiRecognizer::SetEndpointMinUtteranceLength(int rule_id, BaseFloat min_utterance_length) {
+    OnlineEndpointRule *rule = GetOnlineEndpointRule(rule_id);
+    rule->min_utterance_length = min_utterance_length;
+    return;
+}
+
 // Computes an xvector from a chunk of speech features.
 static void RunNnetComputation(const MatrixBase<BaseFloat> &features,
-    const nnet3::Nnet &nnet, nnet3::CachingOptimizingCompiler *compiler,
-    Vector<BaseFloat> *xvector) 
-{
+                               const nnet3::Nnet &nnet, nnet3::CachingOptimizingCompiler *compiler,
+                               Vector<BaseFloat> *xvector) {
     nnet3::ComputationRequest request;
     request.need_model_derivative = false;
     request.store_component_stats = false;
     request.inputs.push_back(
-    nnet3::IoSpecification("input", 0, features.NumRows()));
+        nnet3::IoSpecification("input", 0, features.NumRows()));
     nnet3::IoSpecification output_spec;
     output_spec.name = "output";
     output_spec.has_deriv = false;
@@ -314,7 +341,7 @@ static void RunNnetComputation(const MatrixBase<BaseFloat> &features,
     shared_ptr<const nnet3::NnetComputation> computation = compiler->Compile(request);
     nnet3::Nnet *nnet_to_update = nullptr;  // we're not doing any update.
     nnet3::NnetComputer computer(nnet3::NnetComputeOptions(), *computation,
-                    nnet, nnet_to_update);
+                                 nnet, nnet_to_update);
     CuMatrix<BaseFloat> input_feats_cu(features);
     computer.AcceptInput("input", &input_feats_cu);
     computer.Run();
@@ -326,14 +353,13 @@ static void RunNnetComputation(const MatrixBase<BaseFloat> &features,
 
 #define MIN_SPK_FEATS 50
 
-bool KaldiRecognizer::GetSpkVector(Vector<BaseFloat> &out_xvector, int *num_spk_frames)
-{
+bool KaldiRecognizer::GetSpkVector(Vector<BaseFloat> &out_xvector, int *num_spk_frames) {
     vector<int32> nonsilence_frames;
     if (silence_weighting_->Active() && feature_pipeline_->NumFramesReady() > 0) {
         silence_weighting_->ComputeCurrentTraceback(decoder_->Decoder(), true);
         silence_weighting_->GetNonsilenceFrames(feature_pipeline_->NumFramesReady(),
-                                          frame_offset_ * 3,
-                                          &nonsilence_frames);
+                                                frame_offset_ * 3,
+                                                &nonsilence_frames);
     }
 
     int num_frames = spk_feature_->NumFramesReady() - frame_offset_ * 3;
@@ -344,14 +370,14 @@ bool KaldiRecognizer::GetSpkVector(Vector<BaseFloat> &out_xvector, int *num_spk_
     Vector<BaseFloat> feat(spk_feature_->Dim());
 
     for (int i = 0; i < num_frames; ++i) {
-       if (std::find(nonsilence_frames.begin(),
-                     nonsilence_frames.end(), i / 3) == nonsilence_frames.end()) {
-           continue;
-       }
+        if (std::find(nonsilence_frames.begin(),
+                      nonsilence_frames.end(), i / 3) == nonsilence_frames.end()) {
+            continue;
+        }
 
-       spk_feature_->GetFrame(i + frame_offset_ * 3, &feat);
-       mfcc.CopyRowFromVec(feat, num_nonsilence_frames);
-       num_nonsilence_frames++;
+        spk_feature_->GetFrame(i + frame_offset_ * 3, &feat);
+        mfcc.CopyRowFromVec(feat, num_nonsilence_frames);
+        num_nonsilence_frames++;
     }
 
     *num_spk_frames = num_nonsilence_frames;
@@ -383,22 +409,20 @@ bool KaldiRecognizer::GetSpkVector(Vector<BaseFloat> &out_xvector, int *num_spk_
     out_xvector.AddMatVec(1.0, spk_model_->transform, kNoTrans, xvector, 0.0);
 
     BaseFloat norm = out_xvector.Norm(2.0);
-    BaseFloat ratio = norm / sqrt(out_xvector.Dim()); // how much larger it is
-                                                  // than it would be, in
-                                                  // expectation, if normally
+    BaseFloat ratio = norm / sqrt(out_xvector.Dim());  // how much larger it is
+                                                       // than it would be, in
+                                                       // expectation, if normally
     out_xvector.Scale(1.0 / ratio);
 
     return true;
 }
 
-
-const char *KaldiRecognizer::MbrResult(CompactLattice &clat)
-{
+const char *KaldiRecognizer::MbrResult(CompactLattice &clat) {
     MinimumBayesRisk mbr(clat);
     const vector<BaseFloat> &conf = mbr.GetOneBestConfidences();
     const vector<int32> &words = mbr.GetOneBest();
-    const vector<pair<BaseFloat, BaseFloat> > &times =
-          mbr.GetOneBestTimes();
+    const vector<pair<BaseFloat, BaseFloat>> &times =
+        mbr.GetOneBestTimes();
 
     int size = words.size();
 
@@ -435,48 +459,45 @@ const char *KaldiRecognizer::MbrResult(CompactLattice &clat)
     return StoreReturn(obj.dump());
 }
 
-const char *KaldiRecognizer::NbestResult(CompactLattice &clat)
-{
+const char *KaldiRecognizer::NbestResult(CompactLattice &clat) {
     Lattice lat;
     Lattice nbest_lat;
     std::vector<Lattice> nbest_lats;
 
-    ConvertLattice (clat, &lat);
+    ConvertLattice(clat, &lat);
     fst::ShortestPath(lat, &nbest_lat, max_alternatives_);
     fst::ConvertNbestToVector(nbest_lat, &nbest_lats);
 
     json::JSON obj;
     std::stringstream ss;
     for (int k = 0; k < nbest_lats.size(); k++) {
+        Lattice nlat = nbest_lats[k];
 
-      Lattice nlat = nbest_lats[k];
+        std::vector<int32> alignment;
+        std::vector<int32> words;
+        LatticeWeight weight;
 
-      std::vector<int32> alignment;
-      std::vector<int32> words;
-      LatticeWeight weight;
+        GetLinearSymbolSequence(nlat, &alignment, &words, &weight);
+        float likelihood = -(weight.Value1() + weight.Value2());
 
-      GetLinearSymbolSequence(nlat, &alignment, &words, &weight);
-      float likelihood = -(weight.Value1() + weight.Value2());
+        stringstream text;
 
-      stringstream text;
+        for (int i = 0; i < words.size(); i++) {
+            if (i)
+                text << " ";
+            text << model_->word_syms_->Find(words[i]);
+        }
 
-      for (int i = 0; i < words.size(); i++) {
-        if (i)
-          text << " ";
-        text << model_->word_syms_->Find(words[i]);
-      }
-
-      json::JSON entry;
-      entry["text"] = text.str();
-      entry["confidence"]= likelihood;
-      obj["alternatives"].append(entry);
+        json::JSON entry;
+        entry["text"] = text.str();
+        entry["confidence"] = likelihood;
+        obj["alternatives"].append(entry);
     }
 
     return StoreReturn(obj.dump());
 }
 
-const char* KaldiRecognizer::GetResult()
-{
+const char *KaldiRecognizer::GetResult() {
     if (decoder_->NumFramesDecoded() == 0) {
         return StoreEmptyReturn();
     }
@@ -521,7 +542,7 @@ const char* KaldiRecognizer::GetResult()
         rlat = clat;
     }
 
-    fst::ScaleLattice(fst::GraphLatticeScale(0.9), &rlat); // Apply rescoring weight
+    fst::ScaleLattice(fst::GraphLatticeScale(0.9), &rlat);  // Apply rescoring weight
     CompactLattice aligned_lat;
     if (model_->winfo_) {
         WordAlignLattice(clat, *model_->trans_model_, *model_->winfo_, 0, &aligned_lat);
@@ -534,12 +555,9 @@ const char* KaldiRecognizer::GetResult()
     } else {
         return NbestResult(aligned_lat);
     }
-
 }
 
-
-const char* KaldiRecognizer::PartialResult()
-{
+const char *KaldiRecognizer::PartialResult() {
     if (state_ != RECOGNIZER_RUNNING) {
         return StoreEmptyReturn();
     }
@@ -569,8 +587,7 @@ const char* KaldiRecognizer::PartialResult()
     return StoreReturn(res.dump());
 }
 
-const char* KaldiRecognizer::Result()
-{
+const char *KaldiRecognizer::Result() {
     if (state_ != RECOGNIZER_RUNNING) {
         return StoreEmptyReturn();
     }
@@ -579,8 +596,7 @@ const char* KaldiRecognizer::Result()
     return GetResult();
 }
 
-const char* KaldiRecognizer::FinalResult()
-{
+const char *KaldiRecognizer::FinalResult() {
     if (state_ != RECOGNIZER_RUNNING) {
         return StoreEmptyReturn();
     }
@@ -607,8 +623,7 @@ const char* KaldiRecognizer::FinalResult()
     return last_result_.c_str();
 }
 
-const char *KaldiRecognizer::StoreEmptyReturn()
-{
+const char *KaldiRecognizer::StoreEmptyReturn() {
     if (!max_alternatives_) {
         return StoreReturn("{\"text\": \"\"}");
     } else {
@@ -617,8 +632,7 @@ const char *KaldiRecognizer::StoreEmptyReturn()
 }
 
 // Store result in recognizer and return as const string
-const char *KaldiRecognizer::StoreReturn(const string &res)
-{
+const char *KaldiRecognizer::StoreReturn(const string &res) {
     last_result_ = res;
     return last_result_.c_str();
 }
