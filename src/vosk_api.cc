@@ -37,7 +37,7 @@ void vosk_model_free(VoskModel *model)
 
 int vosk_model_find_word(VoskModel *model, const char *word)
 {
-    return (int) ((Model *)model)->FindWord(word);
+    return (int)((Model *)model)->FindWord(word);
 }
 
 VoskSpkModel *vosk_spk_model_new(const char *model_path)
@@ -70,19 +70,19 @@ void vosk_recognizer_set_max_alternatives(VoskRecognizer *recognizer, int max_al
     ((KaldiRecognizer *)recognizer)->SetMaxAlternatives(max_alternatives);
 }
 
-int vosk_recognizer_accept_waveform(VoskRecognizer *recognizer, const char *data, int length)
+int vosk_recognizer_accept_waveform(VoskRecognizer *recognizer, const char *data, int length, BaseFloat set_rule1_endpoint_min_trailing_sil)
 {
-    return ((KaldiRecognizer *)(recognizer))->AcceptWaveform(data, length);
+    return ((KaldiRecognizer *)(recognizer))->AcceptWaveform(data, length, set_rule1_endpoint_min_trailing_sil);
 }
 
-int vosk_recognizer_accept_waveform_s(VoskRecognizer *recognizer, const short *data, int length)
+int vosk_recognizer_accept_waveform_s(VoskRecognizer *recognizer, const short *data, int length, BaseFloat set_rule1_endpoint_min_trailing_sil)
 {
-    return ((KaldiRecognizer *)(recognizer))->AcceptWaveform(data, length);
+    return ((KaldiRecognizer *)(recognizer))->AcceptWaveform(data, length, set_rule1_endpoint_min_trailing_sil);
 }
 
-int vosk_recognizer_accept_waveform_f(VoskRecognizer *recognizer, const float *data, int length)
+int vosk_recognizer_accept_waveform_f(VoskRecognizer *recognizer, const float *data, int length, BaseFloat set_rule1_endpoint_min_trailing_sil)
 {
-    return ((KaldiRecognizer *)(recognizer))->AcceptWaveform(data, length);
+    return ((KaldiRecognizer *)(recognizer))->AcceptWaveform(data, length, set_rule1_endpoint_min_trailing_sil);
 }
 
 const char *vosk_recognizer_result(VoskRecognizer *recognizer)

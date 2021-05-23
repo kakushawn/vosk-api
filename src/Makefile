@@ -1,4 +1,4 @@
-KALDI_ROOT?=$(HOME)/travis/kaldi
+KALDI_ROOT?=$(HOME)/repos/vosk/kaldi
 OPENFST_ROOT?=$(KALDI_ROOT)/tools/openfst
 OPENBLAS_ROOT?=$(KALDI_ROOT)/tools/OpenBLAS/install
 HAVE_CUDA?=0

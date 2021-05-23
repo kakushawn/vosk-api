@@ -57,8 +57,8 @@ class KaldiRecognizer(object):
     def SetMaxAlternatives(self, max_alternatives):
         _c.vosk_recognizer_set_max_alternatives(self._handle, max_alternatives)
 
-    def AcceptWaveform(self, data):
-        return _c.vosk_recognizer_accept_waveform(self._handle, data, len(data))
+    def AcceptWaveform(self, data, set_rule1_endpoint_min_trailing_sil=-1):
+        return _c.vosk_recognizer_accept_waveform(self._handle, data, len(data), set_rule1_endpoint_min_trailing_sil)
 
     def Result(self):
         return _ffi.string(_c.vosk_recognizer_result(self._handle)).decode('utf-8')

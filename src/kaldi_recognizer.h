@@ -33,71 +33,73 @@
 
 using namespace kaldi;
 
-enum KaldiRecognizerState {
+enum KaldiRecognizerState
+{
     RECOGNIZER_INITIALIZED,
     RECOGNIZER_RUNNING,
     RECOGNIZER_ENDPOINT,
     RECOGNIZER_FINALIZED
 };
 
-class KaldiRecognizer {
-    public:
-        KaldiRecognizer(Model *model, float sample_frequency);
-        KaldiRecognizer(Model *model, SpkModel *spk_model, float sample_frequency);
-        KaldiRecognizer(Model *model, float sample_frequency, char const *grammar);
-        ~KaldiRecognizer();
-        void SetMaxAlternatives(int max_alternatives);
-        bool AcceptWaveform(const char *data, int len);
-        bool AcceptWaveform(const short *sdata, int len);
-        bool AcceptWaveform(const float *fdata, int len);
-        const char* Result();
-        const char* FinalResult();
-        const char* PartialResult();
+class KaldiRecognizer
+{
+public:
+    KaldiRecognizer(Model *model, float sample_frequency);
+    KaldiRecognizer(Model *model, SpkModel *spk_model, float sample_frequency);
+    KaldiRecognizer(Model *model, float sample_frequency, char const *grammar);
+    ~KaldiRecognizer();
+    void SetMaxAlternatives(int max_alternatives);
+    bool AcceptWaveform(const char *data, int len, BaseFloat set_rule1_endpoint_min_trailing_sil);
+    bool AcceptWaveform(const short *sdata, int len, BaseFloat set_rule1_endpoint_min_trailing_sil);
+    bool AcceptWaveform(const float *fdata, int len, BaseFloat set_rule1_endpoint_min_trailing_sil);
+    const char *Result();
+    const char *FinalResult();
+    const char *PartialResult();
 
-    private:
-        void InitState();
-        void InitRescoring();
-        void CleanUp();
-        void UpdateSilenceWeights();
-        bool AcceptWaveform(Vector<BaseFloat> &wdata);
-        bool GetSpkVector(Vector<BaseFloat> &out_xvector, int *frames);
-        const char *GetResult();
-        const char *StoreEmptyReturn();
-        const char *StoreReturn(const string &res);
-        const char *MbrResult(CompactLattice &clat);
-        const char *NbestResult(CompactLattice &clat);
+private:
+    void InitState();
+    void InitRescoring();
+    void CleanUp();
+    void UpdateSilenceWeights();
+    bool AcceptWaveform(Vector<BaseFloat> &wdata, BaseFloat set_rule1_endpoint_min_trailing_sil);
+    bool GetSpkVector(Vector<BaseFloat> &out_xvector, int *frames);
+    const char *GetResult();
+    const char *StoreEmptyReturn();
+    const char *StoreReturn(const string &res);
+    const char *MbrResult(CompactLattice &clat);
+    const char *NbestResult(CompactLattice &clat);
 
-        Model *model_ = nullptr;
-        SingleUtteranceNnet3Decoder *decoder_ = nullptr;
-        fst::LookaheadFst<fst::StdArc, int32> *decode_fst_ = nullptr;
-        fst::StdVectorFst *g_fst_ = nullptr; // dynamically constructed grammar
-        OnlineNnet2FeaturePipeline *feature_pipeline_ = nullptr;
-        OnlineSilenceWeighting *silence_weighting_ = nullptr;
+    Model *model_ = nullptr;
+    SingleUtteranceNnet3Decoder *decoder_ = nullptr;
+    fst::LookaheadFst<fst::StdArc, int32> *decode_fst_ = nullptr;
+    fst::StdVectorFst *g_fst_ = nullptr; // dynamically constructed grammar
+    OnlineNnet2FeaturePipeline *feature_pipeline_ = nullptr;
+    OnlineSilenceWeighting *silence_weighting_ = nullptr;
 
-        // Speaker identification
-        SpkModel *spk_model_ = nullptr;
-        OnlineBaseFeature *spk_feature_ = nullptr;
+    // Speaker identification
+    SpkModel *spk_model_ = nullptr;
+    OnlineBaseFeature *spk_feature_ = nullptr;
 
-        // Rescoring
-        fst::ArcMapFst<fst::StdArc, kaldi::LatticeArc, fst::StdToLatticeMapper<kaldi::BaseFloat> > *lm_fst_ = nullptr;
+    // Rescoring
+    fst::ArcMapFst<fst::StdArc, kaldi::LatticeArc, fst::StdToLatticeMapper<kaldi::BaseFloat>> *lm_fst_ = nullptr;
 
-        // RNNLM rescoring
-        kaldi::rnnlm::RnnlmComputeStateInfo *info = nullptr;
-        fst::ScaleDeterministicOnDemandFst *lm_to_subtract_det_scale = nullptr;
-        fst::BackoffDeterministicOnDemandFst<fst::StdArc> *lm_to_subtract_det_backoff = nullptr;
-        kaldi::rnnlm::KaldiRnnlmDeterministicFst* lm_to_add_orig = nullptr;
-        fst::DeterministicOnDemandFst<fst::StdArc> *lm_to_add = nullptr;
+    // RNNLM rescoring
+    kaldi::rnnlm::RnnlmComputeStateInfo *info = nullptr;
+    fst::ScaleDeterministicOnDemandFst *lm_to_subtract_det_scale = nullptr;
+    fst::BackoffDeterministicOnDemandFst<fst::StdArc> *lm_to_subtract_det_backoff = nullptr;
+    kaldi::rnnlm::KaldiRnnlmDeterministicFst *lm_to_add_orig = nullptr;
+    fst::DeterministicOnDemandFst<fst::StdArc> *lm_to_add = nullptr;
 
-        int max_alternatives_ = 0; // Disable alternatives by default
+    int max_alternatives_ = 0; // Disable alternatives by default
 
-        float sample_frequency_;
-        int32 frame_offset_;
+    float sample_frequency_;
+    int32 frame_offset_;
 
-        int64 samples_processed_;
-        int64 samples_round_start_;
+    int64 samples_processed_;
+    int64 samples_round_start_;
 
-        KaldiRecognizerState state_;
-        string last_result_;
+    KaldiRecognizerState state_;
+    string last_result_;
 };
 
 #endif /* VOSK_KALDI_RECOGNIZER_H */

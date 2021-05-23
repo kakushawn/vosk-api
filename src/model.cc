@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 //
 // For details of possible model layout see doc/models.md section model-structure
 
@@ -24,95 +23,108 @@
 #include <fst/matcher-fst.h>
 #include <fst/extensions/ngram/ngram-fst.h>
 
-namespace fst {
+namespace fst
+{
 
-static FstRegisterer<StdOLabelLookAheadFst> OLabelLookAheadFst_StdArc_registerer;
-static FstRegisterer<NGramFst<StdArc>> NGramFst_StdArc_registerer;
+    static FstRegisterer<StdOLabelLookAheadFst> OLabelLookAheadFst_StdArc_registerer;
+    static FstRegisterer<NGramFst<StdArc>> NGramFst_StdArc_registerer;
 
-}  // namespace fst
+} // namespace fst
 
 #ifdef __ANDROID__
 #include <android/log.h>
 static void KaldiLogHandler(const LogMessageEnvelope &env, const char *message)
 {
-  int priority;
-  if (env.severity > GetVerboseLevel())
-      return;
+    int priority;
+    if (env.severity > GetVerboseLevel())
+        return;
 
-  if (env.severity > LogMessageEnvelope::kInfo) {
-    priority = ANDROID_LOG_VERBOSE;
-  } else {
-    switch (env.severity) {
-    case LogMessageEnvelope::kInfo:
-      priority = ANDROID_LOG_INFO;
-      break;
-    case LogMessageEnvelope::kWarning:
-      priority = ANDROID_LOG_WARN;
-      break;
-    case LogMessageEnvelope::kAssertFailed:
-      priority = ANDROID_LOG_FATAL;
-      break;
-    case LogMessageEnvelope::kError:
-    default: // If not the ERROR, it still an error!
-      priority = ANDROID_LOG_ERROR;
-      break;
+    if (env.severity > LogMessageEnvelope::kInfo)
+    {
+        priority = ANDROID_LOG_VERBOSE;
     }
-  }
+    else
+    {
+        switch (env.severity)
+        {
+        case LogMessageEnvelope::kInfo:
+            priority = ANDROID_LOG_INFO;
+            break;
+        case LogMessageEnvelope::kWarning:
+            priority = ANDROID_LOG_WARN;
+            break;
+        case LogMessageEnvelope::kAssertFailed:
+            priority = ANDROID_LOG_FATAL;
+            break;
+        case LogMessageEnvelope::kError:
+        default: // If not the ERROR, it still an error!
+            priority = ANDROID_LOG_ERROR;
+            break;
+        }
+    }
 
-  std::stringstream full_message;
-  full_message << env.func << "():" << env.file << ':'
-               << env.line << ") " << message;
+    std::stringstream full_message;
+    full_message << env.func << "():" << env.file << ':'
+                 << env.line << ") " << message;
 
-  __android_log_print(priority, "VoskAPI", "%s", full_message.str().c_str());
+    __android_log_print(priority, "VoskAPI", "%s", full_message.str().c_str());
 }
 #else
 static void KaldiLogHandler(const LogMessageEnvelope &env, const char *message)
 {
-  if (env.severity > GetVerboseLevel())
-      return;
+    if (env.severity > GetVerboseLevel())
+        return;
 
-  // Modified default Kaldi logging so we can disable LOG messages.
-  std::stringstream full_message;
-  if (env.severity > LogMessageEnvelope::kInfo) {
-    full_message << "VLOG[" << env.severity << "] (";
-  } else {
-    switch (env.severity) {
-    case LogMessageEnvelope::kInfo:
-      full_message << "LOG (";
-      break;
-    case LogMessageEnvelope::kWarning:
-      full_message << "WARNING (";
-      break;
-    case LogMessageEnvelope::kAssertFailed:
-      full_message << "ASSERTION_FAILED (";
-      break;
-    case LogMessageEnvelope::kError:
-    default: // If not the ERROR, it still an error!
-      full_message << "ERROR (";
-      break;
+    // Modified default Kaldi logging so we can disable LOG messages.
+    std::stringstream full_message;
+    if (env.severity > LogMessageEnvelope::kInfo)
+    {
+        full_message << "VLOG[" << env.severity << "] (";
     }
-  }
-  // Add other info from the envelope and the message text.
-  full_message << "VoskAPI" << ':'
-               << env.func << "():" << env.file << ':'
-               << env.line << ") " << message;
+    else
+    {
+        switch (env.severity)
+        {
+        case LogMessageEnvelope::kInfo:
+            full_message << "LOG (";
+            break;
+        case LogMessageEnvelope::kWarning:
+            full_message << "WARNING (";
+            break;
+        case LogMessageEnvelope::kAssertFailed:
+            full_message << "ASSERTION_FAILED (";
+            break;
+        case LogMessageEnvelope::kError:
+        default: // If not the ERROR, it still an error!
+            full_message << "ERROR (";
+            break;
+        }
+    }
+    // Add other info from the envelope and the message text.
+    full_message << "VoskAPI" << ':'
+                 << env.func << "():" << env.file << ':'
+                 << env.line << ") " << message;
 
-  // Print the complete message to stderr.
-  full_message << "\n";
-  std::cerr << full_message.str();
+    // Print the complete message to stderr.
+    full_message << "\n";
+    std::cerr << full_message.str();
 }
 #endif
 
-Model::Model(const char *model_path) : model_path_str_(model_path) {
+Model::Model(const char *model_path) : model_path_str_(model_path)
+{
 
     SetLogHandler(KaldiLogHandler);
 
     struct stat buffer;
     string am_path = model_path_str_ + "/am/final.mdl";
-    if (stat(am_path.c_str(), &buffer) == 0) {
-         ConfigureV2();
-    } else {
-         ConfigureV1();
+    if (stat(am_path.c_str(), &buffer) == 0)
+    {
+        ConfigureV2();
+    }
+    else
+    {
+        ConfigureV1();
     }
 
     ReadDataFiles();
@@ -145,7 +157,7 @@ void Model::ConfigureV1()
     endpoint_config_.Register(&po);
     decodable_opts_.Register(&po);
 
-    vector<const char*> args;
+    vector<const char *> args;
     args.push_back("vosk");
     args.insert(args.end(), extra_args, extra_args + sizeof(extra_args) / sizeof(extra_args[0]));
     po.Read(args.size(), args.data());
@@ -178,7 +190,6 @@ void Model::ConfigureV2()
     decodable_opts_.Register(&po);
     po.ReadConfigFile(model_path_str_ + "/conf/model.conf");
 
-
     nnet3_rxfilename_ = model_path_str_ + "/am/final.mdl";
     hclg_fst_rxfilename_ = model_path_str_ + "/graph/HCLG.fst";
     hcl_fst_rxfilename_ = model_path_str_ + "/graph/HCLr.fst";
@@ -203,10 +214,9 @@ void Model::ReadDataFiles()
 {
     struct stat buffer;
 
-    KALDI_LOG << "Decoding params beam=" << nnet3_decoding_config_.beam <<
-         " max-active=" << nnet3_decoding_config_.max_active <<
-         " lattice-beam=" << nnet3_decoding_config_.lattice_beam;
+    KALDI_LOG << "Decoding params beam=" << nnet3_decoding_config_.beam << " max-active=" << nnet3_decoding_config_.max_active << " lattice-beam=" << nnet3_decoding_config_.lattice_beam;
     KALDI_LOG << "Silence phones " << endpoint_config_.silence_phones;
+    KALDI_LOG << "Endpoint rule1: min_trailing_silence " << endpoint_config_.rule1.min_trailing_silence;
 
     feature_info_.feature_type = "mfcc";
     ReadConfigFromFile(mfcc_conf_rxfilename_, &feature_info_.mfcc_opts);
@@ -229,7 +239,8 @@ void Model::ReadDataFiles()
     decodable_info_ = new nnet3::DecodableNnetSimpleLoopedInfo(decodable_opts_,
                                                                nnet_);
 
-    if (stat(final_ie_rxfilename_.c_str(), &buffer) == 0) {
+    if (stat(final_ie_rxfilename_.c_str(), &buffer) == 0)
+    {
         KALDI_LOG << "Loading i-vector extractor from " << final_ie_rxfilename_;
 
         OnlineIvectorExtractionConfig ivector_extraction_opts;
@@ -243,38 +254,49 @@ void Model::ReadDataFiles()
 
         feature_info_.use_ivectors = true;
         feature_info_.ivector_extractor_info.Init(ivector_extraction_opts);
-    } else {
+    }
+    else
+    {
         feature_info_.use_ivectors = false;
     }
 
-    if (stat(global_cmvn_stats_rxfilename_.c_str(), &buffer) == 0) {
+    if (stat(global_cmvn_stats_rxfilename_.c_str(), &buffer) == 0)
+    {
         KALDI_LOG << "Reading CMVN stats from " << global_cmvn_stats_rxfilename_;
         feature_info_.use_cmvn = true;
         ReadKaldiObject(global_cmvn_stats_rxfilename_, &feature_info_.global_cmvn_stats);
     }
 
-    if (stat(pitch_conf_rxfilename_.c_str(), &buffer) == 0) {
+    if (stat(pitch_conf_rxfilename_.c_str(), &buffer) == 0)
+    {
         KALDI_LOG << "Using pitch in feature pipeline";
         feature_info_.add_pitch = true;
         ReadConfigFromFile(pitch_conf_rxfilename_, &feature_info_.pitch_opts);
     }
 
-    if (stat(hclg_fst_rxfilename_.c_str(), &buffer) == 0) {
+    if (stat(hclg_fst_rxfilename_.c_str(), &buffer) == 0)
+    {
         KALDI_LOG << "Loading HCLG from " << hclg_fst_rxfilename_;
         hclg_fst_ = fst::ReadFstKaldiGeneric(hclg_fst_rxfilename_);
-    } else {
+    }
+    else
+    {
         KALDI_LOG << "Loading HCL and G from " << hcl_fst_rxfilename_ << " " << g_fst_rxfilename_;
         hcl_fst_ = fst::StdFst::Read(hcl_fst_rxfilename_);
         g_fst_ = fst::StdFst::Read(g_fst_rxfilename_);
         ReadIntegerVectorSimple(disambig_rxfilename_, &disambig_);
     }
 
-    if (hclg_fst_ && hclg_fst_->OutputSymbols()) {
+    if (hclg_fst_ && hclg_fst_->OutputSymbols())
+    {
         word_syms_ = hclg_fst_->OutputSymbols();
-    } else if (g_fst_ && g_fst_->OutputSymbols()) {
+    }
+    else if (g_fst_ && g_fst_->OutputSymbols())
+    {
         word_syms_ = g_fst_->OutputSymbols();
     }
-    if (!word_syms_) {
+    if (!word_syms_)
+    {
         KALDI_LOG << "Loading words from " << word_syms_rxfilename_;
         if (!(word_syms_ = fst::SymbolTable::ReadText(word_syms_rxfilename_)))
             KALDI_ERR << "Could not read symbol table from file "
@@ -283,14 +305,16 @@ void Model::ReadDataFiles()
     }
     KALDI_ASSERT(word_syms_);
 
-    if (stat(winfo_rxfilename_.c_str(), &buffer) == 0) {
+    if (stat(winfo_rxfilename_.c_str(), &buffer) == 0)
+    {
         KALDI_LOG << "Loading winfo " << winfo_rxfilename_;
         kaldi::WordBoundaryInfoNewOpts opts;
         winfo_ = new kaldi::WordBoundaryInfo(opts, winfo_rxfilename_);
     }
 
     // RNNLM Rescoring
-    if (stat(rnnlm_lm_rxfilename_.c_str(), &buffer) == 0) {
+    if (stat(rnnlm_lm_rxfilename_.c_str(), &buffer) == 0)
+    {
         KALDI_LOG << "Loading RNNLM model from " << rnnlm_lm_rxfilename_;
 
         ReadKaldiObject(rnnlm_lm_rxfilename_, &rnnlm);
@@ -299,10 +323,10 @@ void Model::ReadDataFiles()
         ReadKaldiObject(rnnlm_feat_embedding_rxfilename_, &feature_embedding_mat);
         SparseMatrix<BaseFloat> word_feature_mat;
         {
-           Input input(rnnlm_word_feats_rxfilename_);
-           int32 feature_dim = feature_embedding_mat.NumRows();
-           rnnlm::ReadSparseWordFeatures(input.Stream(), feature_dim,
-                             &word_feature_mat);
+            Input input(rnnlm_word_feats_rxfilename_);
+            int32 feature_dim = feature_embedding_mat.NumRows();
+            rnnlm::ReadSparseWordFeatures(input.Stream(), feature_dim,
+                                          &word_feature_mat);
         }
         Matrix<BaseFloat> wm(word_feature_mat.NumRows(), feature_embedding_mat.NumCols());
         wm.AddSmatMat(1.0, word_feature_mat, kNoTrans,
@@ -311,13 +335,15 @@ void Model::ReadDataFiles()
         word_embedding_mat.CopyFromMat(wm);
 
         ReadConfigFromFile(rnnlm_config_rxfilename_, &rnnlm_compute_opts);
-
-    } else if (stat(carpa_rxfilename_.c_str(), &buffer) == 0) {
+    }
+    else if (stat(carpa_rxfilename_.c_str(), &buffer) == 0)
+    {
 
         KALDI_LOG << "Loading CARPA model from " << carpa_rxfilename_;
         std_lm_fst_ = fst::ReadFstKaldi(std_fst_rxfilename_);
         fst::Project(std_lm_fst_, fst::ProjectType::OUTPUT);
-        if (std_lm_fst_->Properties(fst::kILabelSorted, true) == 0) {
+        if (std_lm_fst_->Properties(fst::kILabelSorted, true) == 0)
+        {
             fst::ILabelCompare<fst::StdArc> ilabel_comp;
             fst::ArcSort(std_lm_fst_, ilabel_comp);
         }
@@ -325,15 +351,16 @@ void Model::ReadDataFiles()
     }
 }
 
-void Model::Ref() 
+void Model::Ref()
 {
     ref_cnt_++;
 }
 
-void Model::Unref() 
+void Model::Unref()
 {
     ref_cnt_--;
-    if (ref_cnt_ == 0) {
+    if (ref_cnt_ == 0)
+    {
         delete this;
     }
 }
@@ -346,7 +373,8 @@ int Model::FindWord(const char *word)
     return word_syms_->Find(word);
 }
 
-Model::~Model() {
+Model::~Model()
+{
     delete decodable_info_;
     delete trans_model_;
     delete nnet_;
