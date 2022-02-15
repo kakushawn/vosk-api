@@ -1,18 +1,31 @@
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+}
+
 plugins {
     id 'java-library'
     id 'maven-publish'
+    id 'com.vanniktech.maven.publish' version '0.18.0'
 }
-
-archivesBaseName = 'vosk'
-group = 'com.alphacephei'
-version = '0.3.28'
 
 repositories {
     mavenCentral()
 }
 
+archivesBaseName = 'vosk'
+group = 'com.alphacephei'
+version = '0.3.33'
+
+mavenPublish {
+    group = 'com.alphacephei'
+    version = version
+    sonatypeHost = 's01'
+}
+
 dependencies {
-    implementation group: 'net.java.dev.jna', name: 'jna', version: '5.7.0'
+    api group: 'net.java.dev.jna', name: 'jna', version: '5.7.0'
     testImplementation 'junit:junit:4.13'
 }
 
@@ -45,14 +58,14 @@ publishing {
             }
         }
     }
-    repositories {
-        maven {
-            url = "$buildDir/repo"
-        }
-    }
 }
 
 test {
     dependsOn cleanTest
     testLogging.showStandardStreams = true
+}
+
+java {
+    withSourcesJar()
+    withJavadocJar()
 }

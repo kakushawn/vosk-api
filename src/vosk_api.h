@@ -39,11 +39,15 @@ typedef struct VoskSpkModel VoskSpkModel;
  *  speaker information and so on */
 typedef struct VoskRecognizer VoskRecognizer;
 
+/**
+ * Batch recognizer object
+ */
+typedef struct VoskBatchRecognizer VoskBatchRecognizer;
 
 /** Loads model data from the file and returns the model object
  *
  * @param model_path: the path of the model on the filesystem
- @ @returns model object */
+ * @returns model object or NULL if problem occured */
 VoskModel *vosk_model_new(const char *model_path);
 
 
@@ -66,7 +70,7 @@ int vosk_model_find_word(VoskModel *model, const char *word);
 /** Loads speaker model data from the file and returns the model object
  *
  * @param model_path: the path of the model on the filesystem
- * @returns model object */
+ * @returns model object or NULL if problem occured */
 VoskSpkModel *vosk_spk_model_new(const char *model_path);
 
 
@@ -79,9 +83,13 @@ void vosk_spk_model_free(VoskSpkModel *model);
 
 /** Creates the recognizer object
  *
- *  The recognizers process the speech and return text using shared model data 
- *  @param sample_rate The sample rate of the audio you going to feed into the recognizer
- *  @returns recognizer object */
+ *  The recognizers process the speech and return text using shared model data
+ *  @param model       VoskModel containing static data for recognizer. Model can be
+ *                     shared across recognizers, even running in different threads.
+ *  @param sample_rate The sample rate of the audio you going to feed into the recognizer.
+ *                     Make sure this rate matches the audio content, it is a common
+ *                     issue causing accuracy problems.
+ *  @returns recognizer object or NULL if problem occured */
 VoskRecognizer *vosk_recognizer_new(VoskModel *model, float sample_rate);
 
 
@@ -90,9 +98,13 @@ VoskRecognizer *vosk_recognizer_new(VoskModel *model, float sample_rate);
  *  With the speaker recognition mode the recognizer not just recognize
  *  text but also return speaker vectors one can use for speaker identification
  *
- *  @param sample_rate The sample rate of the audio you going to feed into the recognizer
+ *  @param model       VoskModel containing static data for recognizer. Model can be
+ *                     shared across recognizers, even running in different threads.
+ *  @param sample_rate The sample rate of the audio you going to feed into the recognizer.
+ *                     Make sure this rate matches the audio content, it is a common
+ *                     issue causing accuracy problems.
  *  @param spk_model speaker model for speaker identification
- *  @returns recognizer object */
+ *  @returns recognizer object or NULL if problem occured */
 VoskRecognizer *vosk_recognizer_new_spk(VoskModel *model, float sample_rate, VoskSpkModel *spk_model);
 
 
@@ -106,11 +118,15 @@ VoskRecognizer *vosk_recognizer_new_spk(VoskModel *model, float sample_rate, Vos
  *  Only recognizers with lookahead models support this type of quick configuration.
  *  Precompiled HCLG graph models are not supported.
  *
- *  @param sample_rate The sample rate of the audio you going to feed into the recognizer
+ *  @param model       VoskModel containing static data for recognizer. Model can be
+ *                     shared across recognizers, even running in different threads.
+ *  @param sample_rate The sample rate of the audio you going to feed into the recognizer.
+ *                     Make sure this rate matches the audio content, it is a common
+ *                     issue causing accuracy problems.
  *  @param grammar The string with the list of phrases to recognize as JSON array of strings,
  *                 for example "["one two three four five", "[unk]"]".
  *
- *  @returns recognizer object */
+ *  @returns recognizer object or NULL if problem occured */
 VoskRecognizer *vosk_recognizer_new_grm(VoskModel *model, float sample_rate, const char *grammar);
 
 
@@ -138,34 +154,10 @@ void vosk_recognizer_set_spk_model(VoskRecognizer *recognizer, VoskSpkModel *spk
  */
 void vosk_recognizer_set_max_alternatives(VoskRecognizer *recognizer, int max_alternatives);
 
-/** Accept voice data
- *
- *  accept and process new chunk of voice data
- *
- *  @param data - audio data in PCM 16-bit mono format
- *  @param length - length of the audio data
- *  @returns true if silence is occured and you can retrieve a new utterance with result method */
-int vosk_recognizer_accept_waveform(VoskRecognizer *recognizer, const char *data, int length);
 
-
-/** Same as above but the version with the short data for language bindings where you have
- *  audio as array of shorts */
-int vosk_recognizer_accept_waveform_s(VoskRecognizer *recognizer, const short *data, int length);
-
-
-/** Same as above but the version with the float data for language bindings where you have
- *  audio as array of floats */
-int vosk_recognizer_accept_waveform_f(VoskRecognizer *recognizer, const float *data, int length);
-
-
-/** Returns speech recognition result
- *
- * @returns the result in JSON format which contains decoded line, decoded
- *          words, times in seconds and confidences. You can parse this result
- *          with any json parser
+/** Enables words with times in the output
  *
  * <pre>
- * {
  *   "result" : [{
  *       "conf" : 1.000000,
  *       "end" : 1.110000,
@@ -188,15 +180,60 @@ int vosk_recognizer_accept_waveform_f(VoskRecognizer *recognizer, const float *d
  *       "word" : "zero"
  *     }, {
  *       "conf" : 1.000000,
- *      "end" : 2.610000,
+ *       "end" : 2.610000,
  *       "start" : 2.340000,
  *       "word" : "one"
  *     }],
- *   "text" : "what zero zero zero one"
+ * </pre>
+ *
+ * @param words - boolean value
+ */
+void vosk_recognizer_set_words(VoskRecognizer *recognizer, int words);
+
+
+/** Set NLSML output
+ * @param nlsml - boolean value
+ */
+void vosk_recognizer_set_nlsml(VoskRecognizer *recognizer, int nlsml);
+
+
+/** Accept voice data
+ *
+ *  accept and process new chunk of voice data
+ *
+ *  @param data - audio data in PCM 16-bit mono format
+ *  @param length - length of the audio data
+ *  @returns 1 if silence is occured and you can retrieve a new utterance with result method 
+ *           0 if decoding continues
+ *           -1 if exception occured */
+int vosk_recognizer_accept_waveform(VoskRecognizer *recognizer, const char *data, int length);
+
+
+/** Same as above but the version with the short data for language bindings where you have
+ *  audio as array of shorts */
+int vosk_recognizer_accept_waveform_s(VoskRecognizer *recognizer, const short *data, int length);
+
+
+/** Same as above but the version with the float data for language bindings where you have
+ *  audio as array of floats */
+int vosk_recognizer_accept_waveform_f(VoskRecognizer *recognizer, const float *data, int length);
+
+
+/** Returns speech recognition result
+ *
+ * @returns the result in JSON format which contains decoded line, decoded
+ *          words, times in seconds and confidences. You can parse this result
+ *          with any json parser
+ *
+ * <pre>
+ *  {
+ *    "text" : "what zero zero zero one"
  *  }
  * </pre>
  *
  * If alternatives enabled it returns result with alternatives, see also vosk_recognizer_set_alternatives().
+ *
+ * If word times enabled returns word time, see also vosk_recognizer_set_word_times().
  */
 const char *vosk_recognizer_result(VoskRecognizer *recognizer);
 
@@ -208,7 +245,7 @@ const char *vosk_recognizer_result(VoskRecognizer *recognizer);
  *
  * <pre>
  * {
- *  "partial" : "cyril one eight zero"
+ *    "partial" : "cyril one eight zero"
  * }
  * </pre>
  */
@@ -257,6 +294,33 @@ void vosk_gpu_init();
  *  Has no effect if HAVE_CUDA flag is not set.
  */
 void vosk_gpu_thread_init();
+
+/** Creates the batch recognizer object
+ *
+ *  @returns recognizer object or NULL if problem occured */
+VoskBatchRecognizer *vosk_batch_recognizer_new();
+
+/** Releases batch recognizer object
+ *  Underlying model is also unreferenced and if needed released */
+void vosk_batch_recognizer_free(VoskBatchRecognizer *recognizer);
+
+/** Accept batch voice data */
+void vosk_batch_recognizer_accept_waveform(VoskBatchRecognizer *recognizer, int id, const char *data, int length);
+
+/** Closes the stream */
+void vosk_batch_recognizer_finish_stream(VoskBatchRecognizer *recognizer, int id);
+
+/** Return results */
+const char *vosk_batch_recognizer_front_result(VoskBatchRecognizer *recognizer, int id);
+
+/** Release and free first retrieved result */
+void vosk_batch_recognizer_pop(VoskBatchRecognizer *recognizer, int id);
+
+/** Wait for the processing */
+void vosk_batch_recognizer_wait(VoskBatchRecognizer *recognizer);
+
+/** Get amount of pending chunks for more intelligent waiting */
+int vosk_batch_recognizer_get_pending_chunks(VoskBatchRecognizer *recognizer, int id);
 
 #ifdef __cplusplus
 }

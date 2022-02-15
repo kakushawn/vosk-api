@@ -33,21 +33,23 @@
 
 using namespace kaldi;
 
-enum KaldiRecognizerState {
+enum RecognizerState {
     RECOGNIZER_INITIALIZED,
     RECOGNIZER_RUNNING,
     RECOGNIZER_ENDPOINT,
     RECOGNIZER_FINALIZED
 };
 
-class KaldiRecognizer {
+class Recognizer {
     public:
-        KaldiRecognizer(Model *model, float sample_frequency);
-        KaldiRecognizer(Model *model, float sample_frequency, SpkModel *spk_model);
-        KaldiRecognizer(Model *model, float sample_frequency, char const *grammar);
-        ~KaldiRecognizer();
+        Recognizer(Model *model, float sample_frequency);
+        Recognizer(Model *model, float sample_frequency, SpkModel *spk_model);
+        Recognizer(Model *model, float sample_frequency, char const *grammar);
+        ~Recognizer();
         void SetMaxAlternatives(int max_alternatives);
         void SetSpkModel(SpkModel *spk_model);
+        void SetWords(bool words);
+        void SetNLSML(bool nlsml);
         bool AcceptWaveform(const char *data, int len);
         bool AcceptWaveform(const short *sdata, int len);
         bool AcceptWaveform(const float *fdata, int len);
@@ -68,6 +70,7 @@ class KaldiRecognizer {
         const char *StoreReturn(const string &res);
         const char *MbrResult(CompactLattice &clat);
         const char *NbestResult(CompactLattice &clat);
+        const char *NlsmlResult(CompactLattice &clat);
 
         Model *model_ = nullptr;
         SingleUtteranceNnet3Decoder *decoder_ = nullptr;
@@ -81,16 +84,19 @@ class KaldiRecognizer {
         OnlineBaseFeature *spk_feature_ = nullptr;
 
         // Rescoring
-        fst::ArcMapFst<fst::StdArc, kaldi::LatticeArc, fst::StdToLatticeMapper<kaldi::BaseFloat> > *lm_fst_ = nullptr;
-
+        fst::ArcMapFst<fst::StdArc, LatticeArc, fst::StdToLatticeMapper<BaseFloat> > *lm_to_subtract_ = nullptr;
+        kaldi::ConstArpaLmDeterministicFst *carpa_to_add_ = nullptr;
+        fst::ScaleDeterministicOnDemandFst *carpa_to_add_scale_ = nullptr;
         // RNNLM rescoring
-        kaldi::rnnlm::RnnlmComputeStateInfo *info = nullptr;
-        fst::ScaleDeterministicOnDemandFst *lm_to_subtract_det_scale = nullptr;
-        fst::BackoffDeterministicOnDemandFst<fst::StdArc> *lm_to_subtract_det_backoff = nullptr;
-        kaldi::rnnlm::KaldiRnnlmDeterministicFst* lm_to_add_orig = nullptr;
-        fst::DeterministicOnDemandFst<fst::StdArc> *lm_to_add = nullptr;
+        kaldi::rnnlm::KaldiRnnlmDeterministicFst* rnnlm_to_add_ = nullptr;
+        fst::DeterministicOnDemandFst<fst::StdArc> *rnnlm_to_add_scale_ = nullptr;
+        kaldi::rnnlm::RnnlmComputeStateInfo *rnnlm_info_ = nullptr;
 
+
+        // Other
         int max_alternatives_ = 0; // Disable alternatives by default
+        bool words_ = false;
+        bool nlsml_ = false;
 
         float sample_frequency_;
         int32 frame_offset_;
@@ -98,7 +104,7 @@ class KaldiRecognizer {
         int64 samples_processed_;
         int64 samples_round_start_;
 
-        KaldiRecognizerState state_;
+        RecognizerState state_;
         string last_result_;
 };
 

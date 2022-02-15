@@ -18,10 +18,11 @@
 #include "base/kaldi-common.h"
 #include "online2/online-feature-pipeline.h"
 #include "nnet3/nnet-utils.h"
+#include <atomic>
 
 using namespace kaldi;
 
-class KaldiRecognizer;
+class Recognizer;
 
 class SpkModel {
 
@@ -31,7 +32,7 @@ public:
     void Unref();
 
 protected:
-    friend class KaldiRecognizer;
+    friend class Recognizer;
     ~SpkModel() {};
 
     kaldi::nnet3::Nnet speaker_nnet;
@@ -40,7 +41,7 @@ protected:
 
     MfccOptions spkvector_mfcc_opts;
 
-    int ref_cnt_;
+    std::atomic<int> ref_cnt_;
 };
 
 #endif /* VOSK_SPK_MODEL_H */

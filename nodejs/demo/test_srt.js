@@ -20,6 +20,7 @@ if (process.argv.length > 2)
 vosk.setLogLevel(-1);
 const model = new vosk.Model(MODEL_PATH);
 const rec = new vosk.Recognizer({model: model, sampleRate: SAMPLE_RATE});
+rec.setWords(true);
 
 const ffmpeg_run = spawn('ffmpeg', ['-loglevel', 'quiet', '-i', FILE_NAME,
                          '-ar', String(SAMPLE_RATE) , '-ac', '1',
@@ -45,8 +46,8 @@ ffmpeg_run.on('exit', code => {
             subs.push({
                 type: 'cue',
                 data: {
-                start: words[0].start,
-                end: words[0].end,
+                start: words[0].start * 1000,
+                end: words[0].end * 1000,
                 text: words[0].word
                 }
             });
@@ -60,8 +61,8 @@ ffmpeg_run.on('exit', code => {
                 subs.push({
                     type: 'cue',
                     data: {
-                      start: words[start_index].start,
-                      end: words[i].end,
+                      start: words[start_index].start * 1000,
+                      end: words[i].end * 1000,
                       text: text.slice(0, text.length-1)
                     }
                 });
@@ -73,8 +74,8 @@ ffmpeg_run.on('exit', code => {
             subs.push({
                 type: 'cue',
                 data: {
-                  start: words[start_index].start,
-                  end: words[words.length-1].end,
+                  start: words[start_index].start * 1000,
+                  end: words[words.length-1].end * 1000,
                   text: text
                 }
             });

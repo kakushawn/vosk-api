@@ -29,6 +29,7 @@ public class DecoderTest {
             Recognizer recognizer = new Recognizer(model, 16000)) {
 
             recognizer.setMaxAlternatives(10);
+            recognizer.setWords(true);
 
             int nbytes;
             byte[] b = new byte[4096];
@@ -91,5 +92,11 @@ public class DecoderTest {
             System.out.println(recognizer.getFinalResult());
         }
         Assert.assertTrue(true);
+    }
+
+
+    @Test(expected = IOException.class)
+    public void decoderTestException() throws IOException {
+        Model model = new Model("model_missing");
     }
 }

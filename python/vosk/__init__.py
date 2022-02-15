@@ -25,6 +25,9 @@ class Model(object):
     def __init__(self, model_path):
         self._handle = _c.vosk_model_new(model_path.encode('utf-8'))
 
+        if self._handle == _ffi.NULL:
+            raise Exception("Failed to create a model")
+
     def __del__(self):
         _c.vosk_model_free(self._handle)
 
@@ -35,6 +38,9 @@ class SpkModel(object):
 
     def __init__(self, model_path):
         self._handle = _c.vosk_spk_model_new(model_path.encode('utf-8'))
+
+        if self._handle == _ffi.NULL:
+            raise Exception("Failed to create a speaker model")
 
     def __del__(self):
         _c.vosk_spk_model_free(self._handle)
@@ -51,17 +57,29 @@ class KaldiRecognizer(object):
         else:
             raise TypeError("Unknown arguments")
 
+        if self._handle == _ffi.NULL:
+            raise Exception("Failed to create a recognizer")
+
     def __del__(self):
         _c.vosk_recognizer_free(self._handle)
 
     def SetMaxAlternatives(self, max_alternatives):
         _c.vosk_recognizer_set_max_alternatives(self._handle, max_alternatives)
 
+    def SetWords(self, enable_words):
+        _c.vosk_recognizer_set_words(self._handle, 1 if enable_words else 0)
+
+    def SetNLSML(self, enable_nlsml):
+        _c.vosk_recognizer_set_nlsml(self._handle, 1 if enable_nlsml else 0)
+
     def SetSpkModel(self, spk_model):
         _c.vosk_recognizer_set_spk_model(self._handle, spk_model._handle)
 
     def AcceptWaveform(self, data):
-        return _c.vosk_recognizer_accept_waveform(self._handle, data, len(data))
+        res = _c.vosk_recognizer_accept_waveform(self._handle, data, len(data))
+        if res < 0:
+            raise Exception("Failed to process waveform")
+        return res
 
     def Result(self):
         return _ffi.string(_c.vosk_recognizer_result(self._handle)).decode('utf-8')
@@ -86,3 +104,32 @@ def GpuInit():
 
 def GpuThreadInit():
     _c.vosk_gpu_thread_init()
+
+class BatchRecognizer(object):
+
+    def __init__(self, *args):
+        self._handle = _c.vosk_batch_recognizer_new()
+
+        if self._handle == _ffi.NULL:
+            raise Exception("Failed to create a recognizer")
+
+    def __del__(self):
+        _c.vosk_batch_recognizer_free(self._handle)
+
+    def AcceptWaveform(self, uid, data):
+        res = _c.vosk_batch_recognizer_accept_waveform(self._handle, uid, data, len(data))
+
+    def Result(self, uid):
+        ptr = _c.vosk_batch_recognizer_front_result(self._handle, uid)
+        res = _ffi.string(ptr).decode('utf-8')
+        _c.vosk_batch_recognizer_pop(self._handle, uid)
+        return res
+
+    def FinishStream(self, uid):
+        _c.vosk_batch_recognizer_finish_stream(self._handle, uid)
+
+    def Wait(self):
+        _c.vosk_batch_recognizer_wait(self._handle)
+
+    def GetPendingChunks(self, uid):
+        return _c.vosk_batch_recognizer_get_pending_chunks(self._handle, uid)
